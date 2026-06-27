@@ -21,6 +21,11 @@ Leaderboard at last check: leader **0.88670**, us **0.55487** (2nd), then 0.498,
 
 **Headroom: ~0.33 MRR to the leader.** Plenty of axes below.
 
+**Still our best: SliceCLIP + Sinkhorn (0.555).** Since then we explored a pretrained-encoder
+line (BrainIAC) across four experiments — all came in *below* baseline (see §4.4). The lesson
+they share now drives strategy: gains must come from **dataset2/3 signal**, not more dataset1
+adaptation.
+
 ---
 
 ## 2. The data (measured, not assumed)
@@ -79,6 +84,35 @@ The *same* code path (argmax) scored **0.481** on a fresh model vs the original 
 random augmentation order). **Single submissions are noisy.** Control seeds, and prefer
 averaging / a local validation signal over reading one LB number.
 
+### 4.4 Pretrained-encoder line (BrainIAC) — all four below baseline ❌
+We tried replacing the tiny CNN with **BrainIAC** (`eugenehp/brainiac`), a 3D ViT pretrained
+on 32k+ brain MRIs — the only brain-MRI-specific 3D encoder on Hugging Face.
+
+| Experiment | argmax | Sinkhorn | Hungarian |
+|---|---|---|---|
+| BrainIAC frozen, raw volumes | 0.307 | 0.233 | 0.288 |
+| BrainIAC frozen, **skull-stripped** (HD-BET) | 0.117 | 0.103 | 0.116 |
+| BrainIAC **fine-tuned: adapter head** | 0.261 | 0.268 | 0.288 |
+| BrainIAC **fine-tuned: LoRA r=8** | 0.299 | 0.296 | 0.292 |
+| *(reference) SliceCLIP + Sinkhorn* | 0.481 | **0.555** | 0.529 |
+
+What we learned (each a useful negative):
+- **Frozen zero-shot is weak**, and reranking *hurt* it — the frozen features aren't
+  discriminative for same-subject matching (conflict rate 0.7–0.88).
+- **Skull-stripping made it worse (~halved)** — surprising. The frozen features partly key on
+  skull/field-of-view geometry; removing it *collapsed* the embeddings. So preprocessing
+  mismatch was **not** the bottleneck.
+- **The frozen feature is near-collapsed** (off-diagonal cosine ~0.9999); fine-tuning needs
+  per-dimension feature standardization just to train at all.
+- **Fine-tuning (head and LoRA) overfits dataset1 and does not transfer.** Train MRR climbs to
+  0.5–0.9 but LB stays ~0.27–0.30, because the LB is dominated by ds2/ds3 (no labels there).
+- **Conclusion:** the whole BrainIAC line is a dead end. Closing the gap needs ds2/ds3 signal,
+  not more ds1 adaptation. *(PRs #5 frozen, #6 skull-strip, #7 fine-tune.)*
+
+### 4.5 In flight
+- **F1 — ds2-style augmentation** on SliceCLIP (branch `ds2-geometric-augmentation`).
+- **D2 — cross-attention reranker** (branch in progress). Both target the ds2/ds3 gap above.
+
 ---
 
 ## 5. Improvement axes
@@ -101,14 +135,14 @@ biggest expected impact for least effort, and they target ds2/ds3 where we're we
 - **B4. Higher resolution** than 96×96. *(low / low-med)*
 
 ### C. Encoders / pretrained models
-- **C1. Pretrained medical foundation models** (e.g. BiomedCLIP, MedicalNet, brain-MRI models on HF) as encoders. *(med / high)*
+- **C1. Pretrained medical foundation models — ❌ TRIED (BrainIAC), dead end** (see §4.4: frozen, skull-strip, adapter, LoRA all below baseline). A *different* pretrained encoder could still work, but BrainIAC's near-collapsed features + ds1-only overfitting make this low-priority now.
 - **C2. ImageNet-pretrained 2D backbones** (ResNet/ViT) fine-tuned, instead of the tiny CNN. *(med / med-high)*
 - **C3. Self-supervised pretraining** on the unlabeled ds2/ds3 images. *(high / med-high)*
 - **C4. Learnable temperature** — `similarity_scale` is fixed at 5.0; make it a parameter. *(low / low)*
 
 ### D. Architecture
 - **D1. Single shared encoder** (modality is the only difference) or modality-conditioned encoder. *(low-med / med)*
-- **D2. Cross-attention** between query and candidate (reranker on top of bi-encoder). *(high / med-high)*
+- **D2. Cross-attention** between query and candidate (reranker on top of bi-encoder) — 🔄 **in progress**. *(high / med-high)*
 
 ### E. Training objective & negatives
 - **E1. Much larger batch** → more in-batch negatives (MI300X can hold huge batches). *(low / med)*
@@ -118,7 +152,7 @@ biggest expected impact for least effort, and they target ds2/ds3 where we're we
 ### F. Generalization to ds2/ds3  *(the biggest score lever — we have no labels there)*
 - **F1. Train-time deformation augmentation** — apply random rigid (rotation/translation)
   + elastic warps **independently** to query and target, mimicking ds2's construction.
-  Directly trains for the deformed setting we score worst on. *(med / high)* ← **recommended next**
+  Directly trains for the deformed setting we score worst on. *(med / high)* ← 🔄 **in progress** (the most promising lever; validate on a synthetic-ds2 set first)
 - **F2. Intensity standardization / histogram matching / percentile clipping** for scanner robustness. *(low / med)*
 - **F3. Skull stripping / brain extraction** to drop non-brain variation. *(med / med)*
 - **F4. Test-time augmentation** — embed several augmented views, average. *(low / low-med)*
