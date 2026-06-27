@@ -1,0 +1,57 @@
+what should we do about the .entire then
+
+---
+
+yes do that
+
+---
+
+Download read the competittion data. Create some statistics on the dataset so i have insights
+
+---
+
+use sshpass to ssh to my gpu IP 134.199.193.58 root_pswd: Iris5739. The datas are already downloaded there.
+
+---
+
+don't do the extraction yet, someone else is doing it via ssh.
+
+---
+
+Is there a bijection from query to target? If we are very confident about the query target, should we exclude it for another query? Meaning, are the predictionary independent from one another, or should we consider other queries?
+
+---
+
+Check out https://github.com/gablandman/ehl-paris-2026-medical-retrieval/pull/1, there are insights on the data.  Is there a bijection from query to target? If we are very confident about the query target, should we exclude it for another query? Meaning, are the predictionary independent from one another, or should we consider other queries?
+
+---
+
+Try it on gpu !
+
+---
+
+Try both on gpu (sinkhorn, then hungarian).
+
+---
+
+- You can confirm in 10s on dataset1/train_pairs.csv: query_id and target_id should both be unique → bijective on the labelled set. -> do this first maybe ?
+
+---
+
+So here, we don't have really similarity, or at least we have something that maybe not perfect because it's the output of our model embeddings. And so if the embeddings are wrong, for instance, so we will maybe mistake, and we should maybe prefer than being independent because another embedding may be easier. And by by being very confident and... or at least we could be very confidently wrong. And so it could bias a lot on the... of our meetings, our decision. He's doing the Hungarian or. Don't you think?
+
+---
+
+go for it
+
+---
+
+How do you deal with the ranking then if you do optimal assignment? Assignment.
+
+---
+
+Try both on gpu (sinkhorn, then hungarian).
+
+---
+
+It's ok, commit and push. My mate will take over from entire.io
