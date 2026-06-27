@@ -203,6 +203,88 @@ The complete submission template contains one row for every validation and test 
 - For full challenge submissions, submit both validation and test query rows in one file.
 - To focus on one dataset first, submit only that dataset's rows and omit the other datasets. The omitted datasets receive zero credit. Multiplying the displayed score by `3` gives the MRR for the submitted dataset.
 
+## Experiment: cross-attention reranker (negative result)
+
+The baseline is a **bi-encoder**: each volume is squeezed into one 128-d
+embedding and pairs are ranked by cosine similarity (then Sinkhorn bijection
+reranking → best score **0.555**). That throws away spatial structure — a query
+and a candidate are never looked at *together*.
+
+`xattn_rerank.py` tries a **cross-attention reranker** instead. On top of the
+frozen SliceCLIP bi-encoder, it keeps a small grid of feature tokens per volume
+and lets query tokens attend to candidate tokens (and vice-versa) to produce a
+sharper, pair-specific match score. Galleries are small (≤100 per pool), so we
+cross-score every query × candidate pair. The cross-attention logit is added as
+a **learned residual on top of the bi-encoder cosine**, so at initialisation the
+reranker reproduces the 0.555 baseline and training can only move it if the
+cross-attention finds a real correction. We train on the 350 labelled dataset1
+pairs with an in-batch listwise softmax (frozen backbone, dropout, weight decay),
+and validate on a held-out **synthetic-dataset2** set (dataset1 pairs whose query
+and target are deformed independently with rigid + elastic transforms) *before*
+submitting, to check transfer.
+
+It does **not** beat the bi-encoder. On the leaderboard:
+
+| Method                                   | argmax   | Sinkhorn  |
+| ---------------------------------------- | -------- | --------- |
+| SliceCLIP bi-encoder (baseline)          |  0.481   | **0.555** |
+| Cross-attention reranker, no aug         |  0.395   |  0.464    |
+| Cross-attention reranker, ds2-style aug  |  0.394   |  0.452    |
+
+Two findings explain why:
+
+1. **The conv feature map carries almost no signal in this tiny encoder.**
+   Across volumes the 64-channel conv grid (the natural token source) has a
+   per-feature std of ~0.006 — nearly constant — while the 128-d *projected*
+   embedding has std ~0.088 and separates clean dataset1 perfectly (MRR ≈ 1.0,
+   diagonal cosine 0.997 vs off-diagonal 0.006). The discriminative power lives
+   in the projection MLP, not in the tokens. Fed only the tokens, a plain
+   cross-attention head learns nothing and **collapses to a constant score**
+   (top-1 conflict rate 1.0 — every query points at the same gallery item).
+   Anchoring the score on the bi-encoder cosine fixes the collapse but leaves
+   the cross-attention with little to add.
+
+2. **What the cross-attention does learn overfits dataset1 and scrambles
+   dataset3.** With the cosine anchor in place, the learned refinement leaves the
+   dataset1 and dataset2 rankings unchanged (top-1 agreement with cosine = 1.0)
+   but **flips ~90% of the dataset3 top-1 picks** (agreement 0.10). Dataset3 is
+   the preoperative→intraoperative pool where anatomy actually differs and the
+   bi-encoder cosine is least confident (top1−top2 gap ≈ 0.04 vs 0.09 on
+   dataset1). The dataset1-trained refinement is large enough to overwhelm that
+   weak signal and corrupts exactly the pool that most needed help — dragging the
+   Sinkhorn score from 0.555 to 0.464. On the synthetic-dataset2 hold-out the
+   refinement converges to **exactly the cosine ranking** (Δ MRR ≈ +0.000), so
+   the offline proxy already predicted "no gain" before any submission was spent.
+
+This matches the broader pattern in these experiments: anything trained on the
+350 registered dataset1 pairs overfits dataset1 and fails to transfer to the
+deformed (dataset2) and structurally different (dataset3) pools that dominate the
+score. The cross-attention reranker is **not worth pursuing** for this task with
+this backbone; a useful reranker would need feature tokens that actually vary
+across subjects (e.g. an unfrozen or larger encoder) and labelled data beyond
+dataset1.
+
+Run it (frozen backbone is the default; pass `--augment` for the ds2-style
+training variant):
+
+```sh
+DATA_ROOT=/path/to/kaggle_dataset
+uv run xattn_rerank.py \
+  --data-root "$DATA_ROOT" \
+  --train-pair-csv "$DATA_ROOT/dataset1/train_pairs.csv" \
+  --backbone-ckpt rerank_out/model.pt \
+  --query-csv "$DATA_ROOT/dataset1/val_queries.csv"  --gallery-csv "$DATA_ROOT/dataset1/val_gallery.csv" \
+  --query-csv "$DATA_ROOT/dataset1/test_queries.csv" --gallery-csv "$DATA_ROOT/dataset1/test_gallery.csv" \
+  --query-csv "$DATA_ROOT/dataset2/val_queries.csv"  --gallery-csv "$DATA_ROOT/dataset2/val_gallery.csv" \
+  --query-csv "$DATA_ROOT/dataset2/test_queries.csv" --gallery-csv "$DATA_ROOT/dataset2/test_gallery.csv" \
+  --query-csv "$DATA_ROOT/dataset3/val_queries.csv"  --gallery-csv "$DATA_ROOT/dataset3/val_gallery.csv" \
+  --query-csv "$DATA_ROOT/dataset3/test_queries.csv" --gallery-csv "$DATA_ROOT/dataset3/test_gallery.csv" \
+  --out-dir xattn_out
+```
+
+`--backbone-ckpt` is the trained SliceCLIP bi-encoder (e.g. the `rerank_out/model.pt`
+checkpoint saved by `rerank_baseline.py`).
+
 ## Baseline Code
 
 We provide a small MONAI + PyTorch baseline to help you get started with the challenge data format, preprocessing, training loop, and submission generation.
