@@ -11,3 +11,6 @@ persistent_cache/
 *.nii.gz
 submission*.csv
 !sample_submission.csv
+
+# Local data exploration scratch (downloaded samples, viz)
+samples/
