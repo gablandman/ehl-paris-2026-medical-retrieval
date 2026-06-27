@@ -1,0 +1,54 @@
+[project]
+name = "ehl-paris-2026-medical-retrieval"
+version = "0.1.0"
+description = "Brain MRI cross-modal retrieval challenge — EHL Paris 2026 hackathon"
+requires-python = ">=3.12"
+dependencies = [
+    "monai>=1.5.0",
+    "torch>=2.7.0",
+    "numpy>=2.0",
+    "nibabel>=5.3",
+    "tqdm>=4.67",
+    # Direct dep so the ROCm-index source mapping below applies (uv sources do
+    # not redirect transitive deps). Only needed for the linux/x86_64 server.
+    "triton-rocm>=3.6.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15",
+    "ty>=0.0.55",
+]
+
+[tool.uv]
+package = false
+# Lock only the two environments that actually exist: local Mac (darwin/arm64)
+# and the remote MI300X server (linux/x86_64). Avoids an unsatisfiable
+# linux-aarch64 split (ROCm wheels are x86_64-only).
+environments = [
+    "sys_platform == 'darwin'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+# PyTorch ROCm wheels for the remote AMD MI300X (linux/x86_64). On macOS (local
+# dev) torch resolves from PyPI so the project still installs and lints locally.
+[tool.uv.sources]
+torch = [{ index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" }]
+# No marker: triton-rocm only exists on the ROCm index and is only ever pulled
+# in transitively on Linux, so route it there unconditionally.
+triton-rocm = { index = "pytorch-rocm" }
+
+[[tool.uv.index]]
+name = "pytorch-rocm"
+url = "https://download.pytorch.org/whl/rocm7.0"
+explicit = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ty.environment]
+python-version = "3.12"

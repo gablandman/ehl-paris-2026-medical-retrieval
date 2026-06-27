@@ -1,0 +1,13 @@
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.ty_cache/
+
+# Data & run outputs (keep the tracked sample submission)
+persistent_cache/
+*.nii
+*.nii.gz
+submission*.csv
+!sample_submission.csv
