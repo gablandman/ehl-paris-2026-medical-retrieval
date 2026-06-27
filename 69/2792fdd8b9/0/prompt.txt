@@ -159,3 +159,56 @@ can you merge the finding.md on main please but firwst update it with the curren
 ---
 
 can you merge the finding.md on main please but firwst update it with the current findings
+
+---
+
+base on the context of my problem make multiple websearch to see what is sota today
+
+---
+
+<task-notification>
+<task-id>ae5651be6e82cc738</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-gklajer-Developer-TEST-HACK-ehl-paris-2026-medical-retrieval/6a6a9fa8-5e05-4dca-915b-172b1d6e9e59/tasks/ae5651be6e82cc738.output</output-file>
+<status>completed</status>
+<summary>Agent "Cross-attention reranker (D2)" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>The awk parsing didn't capture the score column cleanly, but I already have all the confirmed scores from earlier. The SSH master is closed cleanly (didn't touch the other agent's sockets).
+
+Everything is complete. Here is my final report.
+
+---
+
+## Cross-attention reranker (FINDINGS axis D2) — Negative result
+
+**Verdict: it does NOT beat 0.555.** The cross-attention reranker scores **0.464 (Sinkhorn) / 0.395 (argmax)** versus the bi-encoder baseline's **0.555 / 0.481** — about 0.09 below, on real leaderboard submissions (all 6 pools, 377 rows verified).
+
+### What I built (`xattn_rerank.py`)
+On top of the frozen SliceCLIP bi-encoder: each volume → 64-channel conv feature grid → adaptive-pool to 16 tokens; query and candidate tokens cross-attend bidirectionally; the resulting match logit is added as a **learned residual on top of the bi-encoder cosine** (so it starts exactly at the 0.555 baseline). Trained on the 350 dataset1 pairs with in-batch listwise softmax, frozen backbone, dropout + weight decay. Includes the synthetic-dataset2 transfer harness (independent rigid+elastic deformation of held-out pairs) that the task asked for.
+
+### Leaderboard comparison
+
+| Method | argmax | Sinkhorn |
+|---|---|---|
+| SliceCLIP bi-encoder (baseline) | 0.481 | **0.555** |
+| Cross-attention reranker, no aug | 0.395 | 0.464 |
+| Cross-attention reranker, ds2-style aug | 0.394 | 0.452 |
+
+### Why it fails (two diagnosed, mechanistic causes)
+1. **The conv tokens barely vary across subjects.** Measured directly: the 64-ch conv grid has per-feature std ~0.006 across volumes (nearly constant), while the 128-d projected embedding has std ~0.088 and separates clean ds1 perfectly (MRR≈1.0). The signal lives in the projection MLP, not the tokens — so a plain cross-attention head fed those tokens **collapsed to a constant score** (top-1 conflict 1.0). Anchoring on cosine fixed the collapse but left little to add.
+2. **The learned refinement overfits ds1 and scrambles ds3.** With the cosine anchor it leaves ds1/ds2 rankings unchanged (top-1 agreement 1.0) but **flips ~90% of dataset3 top-1 picks** (agreement 0.10) — ds3 is the out-of-distribution pre→intraoperative pool where cosine is least confident, so the ds1-trained refinement overwhelms the weak signal there. **Synthetic-ds2 transfer check: Δ MRR = +0.000** (refinement converged to exactly the cosine ranking on deformed holdout) — the offline proxy correctly predicted "no gain" before I spent submissions.
+
+### Process note (important)
+A `/code-review` pass caught a **load-bearing gradient bug** in my first version: the trainable cross-attention params were computed inside the backbone's `torch.no_grad()`, so the head never trained (only `base_scale`/`refine_gate` updated). I fixed it (verified gradients now flow; also fixed a dead-gate at `refine_gate=0`), re-ran, and the conclusion held — the gradient-fixed v3 scored 0.464, identical to the buggy v2. So the negative result is robust, not an artifact.
+
+### Shipped
+- Branch `xattn-cross-attention-reranker` off clean `main`, **PR #8** opened against gablandman/ehl-paris-2026-medical-retrieval with gablandman as reviewer.
+- PR diff verified to contain **only** my two files: `xattn_rerank.py` (self-contained — vendors the volume-bank + augmentation helpers, depends only on `slice_clip_baseline.py` + `rerank_baseline.py`) and a `README.md` negative-result section. The `entire` tooling had switched me onto a sibling's branch with staged sibling files; I branched off `origin/main` and confirmed the final PR excludes `slice_clip_ds2aug.py`/`rerank_ds2aug.py`.
+
+**Recommendation:** cross-attention reranking is not worth pursuing on this backbone. A useful reranker would need feature tokens that actually vary across subjects (an unfrozen or larger encoder) and labelled data beyond the 350 registered dataset1 pairs.</result>
+<usage><subagent_tokens>217317</subagent_tokens><tool_uses>242</tool_uses><duration_ms>2347981</duration_ms></usage>
+</task-notification>
+
+---
+
+ok so do mind and from now ask the subagent to do sinkhorn / hungarian only once if the method improve the baseline
