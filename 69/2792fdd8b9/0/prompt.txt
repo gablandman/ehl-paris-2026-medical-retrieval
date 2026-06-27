@@ -1,0 +1,161 @@
+do you have access to the last conversation from gablandman with claude
+
+---
+
+can you continue run sinkhorn and hungarian on top of the baseline
+
+---
+
+can you merge gpu baseline into main
+
+---
+
+i forgot the stack
+
+---
+
+can you describe the baseline
+
+---
+
+ok 2 things we need to find all the amelioration axis to work on note that we already find one and put all the findings from our experiment accessible in a file
+
+---
+
+i guess on of the biggest lever to test next is to used a using a pretrained encoder from hf can you launch a subagent
+
+---
+
+can you look for the most well suited online
+
+---
+
+go ahead
+
+---
+
+ok test 1 with background subagent and for 2 can you test both adapter head and lora i guess could do the job
+
+---
+
+what is the biggest next lever i guess is to trained on ds2 and ds3 right self supervised or to train with augmentation on ds1 to reprocue kinf of ds1
+
+---
+
+2 background agents were stopped by the user: "Skull-strip + frozen BrainIAC", "Fine-tune BrainIAC: adapter + LoRA".
+
+---
+
+continue the background agents
+
+---
+
+ok so i guess go with option B in a background agents as well
+
+---
+
+<task-notification>
+<task-id>a2e7d88874c8aa59a</task-id>
+<tool-use-id>toolu_01EMoESXaPcGRuWkN9DgHMXV</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-gklajer-Developer-TEST-HACK-ehl-paris-2026-medical-retrieval/6a6a9fa8-5e05-4dca-915b-172b1d6e9e59/tasks/a2e7d88874c8aa59a.output</output-file>
+<status>completed</status>
+<summary>Agent "Skull-strip + frozen BrainIAC" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Done. Here is the full report.
+
+## Summary
+
+Tested whether skull-stripping the brain MRI volumes makes the frozen BrainIAC encoder competitive for retrieval. **It does not — stripping made it clearly worse.** This is a clean negative result.
+
+### What I found / reused
+The interrupted prior run had installed HD-BET 2.0.1 and downloaded its model weights (`~/hd-bet_params/release_2.0.0`), but had not started stripping (no `data_stripped/`). I reused the install and ran everything from there.
+
+### What I did
+1. Verified HD-BET works on the MI300X GPU (folder mode, one model load). Output files keep the input basename.
+2. Wrote `skullstrip.py`: resolves all 754 query+gallery volumes from the 12 manifests, runs HD-BET once over a flat staging folder, then distributes outputs into a parallel `data_stripped/` tree mirroring the originals' relative paths so the CSVs resolve unchanged. Ran it via nohup; all 754 completed. Sanity check confirmed stripping removed ~75-80% of nonzero voxels (brain kept, skull/neck/eyes zeroed), shapes preserved.
+3. Re-embedded the stripped tree with frozen BrainIAC (`brainiac_encode.py`, `--data-root data_stripped`, fresh cache + `brainiac_stripped_out/`). 754 volumes embedded in ~13s. All 3 submissions valid: 377 rows, no empty rankings.
+4. Submitted all three to Kaggle and fetched scores.
+
+### Results (MRR, public leaderboard)
+
+| Encoder + preprocessing      | argmax | Sinkhorn  | Hungarian |
+| ---------------------------- | ------ | --------- | --------- |
+| SliceCLIP (best baseline)    | 0.481  | **0.555** | 0.529     |
+| BrainIAC frozen, raw volumes | 0.307  | 0.233     | 0.288     |
+| BrainIAC frozen, skull-strip | 0.117  | 0.103     | 0.116     |
+
+### Conclusion
+Skull-stripping roughly **halved** BrainIAC's score across all rerankers — the opposite of the hypothesis. The off-distribution skull was not the bottleneck; the frozen features were partly keying on head/skull geometry and field of view for same-subject matching, and removing that collapsed the embeddings (top-1 conflict rate rose to ~0.84). The frozen-BrainIAC path is not worth pursuing; closing the gap would require fine-tuning the encoder, not better-matched preprocessing.
+
+### Shipped
+- PR #6: https://github.com/gablandman/ehl-paris-2026-medical-retrieval/pull/6 (base `main`, reviewer `gablandman`, +181/-0, exactly 3 files: `skullstrip.py`, `run_skullstrip.sh`, `README.md`).
+- Note on the push: github.com SSH (port 22) timed out, so I pushed over HTTPS using the authed `gh` token. Also, the working directory got switched to another branch mid-task (the `entire` checkpoint tooling appears active in this repo); I re-anchored my commit cleanly onto `main` via cherry-pick so the PR diff contains only my 3 files and none of the unmerged brainiac-encoder/finetune files.
+
+One caveat worth noting: the stripped mirror files are named `.nii.gz` (HD-BET output is genuinely gzip-compressed), whereas the originals are uncompressed `.nii`; the path resolver and MONAI loader handle both, and the per-pool counts all matched (40/40, 100/100, 40/40, 100/100, 20/20, 77/77).</result>
+<usage><subagent_tokens>108841</subagent_tokens><tool_uses>113</tool_uses><duration_ms>1333895</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>a77f75720be3105e6</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-gklajer-Developer-TEST-HACK-ehl-paris-2026-medical-retrieval/6a6a9fa8-5e05-4dca-915b-172b1d6e9e59/tasks/a77f75720be3105e6.output</output-file>
+<status>completed</status>
+<summary>Agent "Fine-tune BrainIAC: adapter + LoRA" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>All scored and confirmed. (The skull-strip rows at the top are the parallel agent's work, not mine.) My task is complete.
+
+## Report
+
+**Goal:** Fine-tune BrainIAC for cross-modal same-subject retrieval on the 350 dataset1 pairs, testing (A) frozen-backbone adapter head and (B) LoRA, to try to beat 0.555.
+
+**Result: honest negative — neither method beat 0.555, and neither beat the frozen BrainIAC baseline (0.307).**
+
+### What I found and fixed
+The interrupted run had completed the head mode but **trained nothing** — loss was stuck at exactly `ln(32)=3.467` and holdout MRR ~0.13. Root cause (diagnosed by probing the backbone): the **frozen BrainIAC feature is near-collapsed** — every input maps to almost the same 768-d vector (off-diagonal cosine ~0.9999; a huge shared offset with a tiny per-sample residual). Fed raw into a head, InfoNCE can't separate anything.
+
+The fix I added: **per-dimension feature standardization** (subtract dataset mean / divide by std, computed once from the backbone, stored as buffers) before the head. After this, both modes train cleanly (loss 5.1→0.2; in-pool holdout MRR reaches ~0.45–0.51 on 40 pairs).
+
+### Leaderboard comparison (public MRR)
+| variant | argmax | sinkhorn | hungarian |
+|---|---|---|---|
+| frozen BrainIAC | 0.307 | 0.233 | 0.288 |
+| **adapter head (A)** | 0.261 | 0.268 | 0.288 |
+| **LoRA r=8 (B)** | 0.299 | 0.296 | 0.292 |
+| SliceCLIP (best) | 0.481 | **0.555** | 0.529 |
+
+### Interpretation
+- Both modes **memorize** dataset1 (biased train MRR: head 0.54–0.68, LoRA 0.86–0.92) but **do not transfer**. LoRA memorizes harder (more capacity) yet generalizes no better.
+- The public LB is dominated by dataset2/3 pools, which have **no training labels** and a likely domain shift. Adapting on dataset1 alone overfits that one dataset.
+- LoRA edges out the head slightly and is the more robust of the two, but both are statistically on par with the frozen encoder.
+
+**Recommendation:** Fine-tuning BrainIAC on dataset1 alone is a dead end here. The frozen-encoder + strong reranker recipe (SliceCLIP + Sinkhorn, 0.555) remains the target. Closing the gap needs signal on dataset2/3 (labels, or self-supervised cross-modal alignment per dataset), not more adaptation on dataset1.
+
+### Shipped
+- All 6 fine-tuned variants submitted to Kaggle (377 rows each, validated, no empty rankings).
+- Code on branch `brainiac-finetune` → **PR #7** (base `brainiac-encoder`, where its `brainiac_encode.py` dependency lives), reviewer gablandman, with a plain pedagogic write-up of the standardization fix and the negative result. Files: `brainiac_finetune.py` (+430), `run_ft.sh` (+15). Server and local copies are in sync; temp probes cleaned up. Note: I rebased to drop a parallel agent's skull-strip commit that had leaked into the local branch tip, so the PR contains only my two files.
+
+Key local files: `/Users/gklajer/Developer/TEST/HACK/ehl-paris-2026-medical-retrieval/brainiac_finetune.py` and `run_ft.sh`.</result>
+<usage><subagent_tokens>85278</subagent_tokens><tool_uses>62</tool_uses><duration_ms>1388536</duration_ms></usage>
+</task-notification>
+
+---
+
+and can you launch a subagent in the background for d2
+
+---
+
+no by d2 i meant the cross attention
+
+---
+
+from findings
+
+---
+
+can you merge the finding.md on main please but firwst update it with the current findings
+
+---
+
+can you merge the finding.md on main please but firwst update it with the current findings
