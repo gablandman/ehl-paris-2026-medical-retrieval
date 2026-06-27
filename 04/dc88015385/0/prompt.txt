@@ -1,0 +1,5 @@
+Create a readme saying Gabriel Landman - Gary Klajer. Commit and push. Make sure you're properly logged in gh as gablandman (gabriel.landman@student-cs.fr).
+
+---
+
+Actually, just add that it's Gabriel Landman and Gary Klajer's fork at the beginning of the readme in one short sentence and let the actual one.
