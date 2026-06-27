@@ -1,0 +1,33 @@
+do you have access to the last conversation from gablandman with claude
+
+---
+
+can you continue run sinkhorn and hungarian on top of the baseline
+
+---
+
+can you merge gpu baseline into main
+
+---
+
+i forgot the stack
+
+---
+
+can you describe the baseline
+
+---
+
+ok 2 things we need to find all the amelioration axis to work on note that we already find one and put all the findings from our experiment accessible in a file
+
+---
+
+i guess on of the biggest lever to test next is to used a using a pretrained encoder from hf can you launch a subagent
+
+---
+
+can you look for the most well suited online
+
+---
+
+go ahead
