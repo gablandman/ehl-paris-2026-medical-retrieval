@@ -86,7 +86,13 @@ CONFIG = {
     "similarity_scale": 5.0,
     "max_grad_norm": 1.0,
     "num_workers": 0,
-    "device": "mps" if torch.backends.mps.is_available() else "cpu",
+    "device": (
+        "cuda"
+        if torch.cuda.is_available()
+        else "mps"
+        if torch.backends.mps.is_available()
+        else "cpu"
+    ),
 }
 
 
@@ -219,7 +225,14 @@ def read_csv(path: Path) -> list[dict[str, str]]:
 def resolve_image_path(data_root: Path, image_path: str) -> Path:
     """Resolve manifest image paths relative to the dataset root."""
     path = Path(image_path)
-    return path if path.is_absolute() else data_root / path
+    resolved = path if path.is_absolute() else data_root / path
+    if resolved.exists():
+        return resolved
+    # The manifests list .nii.gz, but the released volumes are uncompressed .nii
+    # (or vice versa); fall back to whichever extension exists on disk.
+    text = str(resolved)
+    alternate = Path(text[:-3]) if text.endswith(".nii.gz") else Path(text + ".gz")
+    return alternate if alternate.exists() else resolved
 
 
 def load_manifest_images(data_root: Path, csv_paths: list[Path], id_column: str, image_column: str) -> dict[str, Path]:
