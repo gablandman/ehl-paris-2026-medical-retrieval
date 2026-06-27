@@ -14,3 +14,6 @@ submission*.csv
 
 # Local data exploration scratch (downloaded samples, viz)
 samples/
+
+# Reranking run outputs (model, sim cache, generated submissions)
+rerank_out/
