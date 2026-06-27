@@ -1,34 +1,27 @@
 #!/usr/bin/env bash
-# Helper to run the MIND retrieval experiment on the GPU server.
-#
+# MIND retrieval (our standalone 0.801 result).
 #   ./run_mind.sh offline    # validate on ds1-holdout + synthetic-ds2 proxies
 #   ./run_mind.sh submit     # write a single Sinkhorn-reranked submission
-#
-# Pool ordering for --query-csv/--gallery-csv below is:
-#   0 ds1 val   1 ds1 test   2 ds2 val   3 ds2 test   4 ds3 val   5 ds3 test
-# so ds2 pools (2,3) are the ones to COM-align in submit mode.
-
+# Pool order: 0 ds1val 1 ds1test 2 ds2val 3 ds2test 4 ds3val 5 ds3test
 set -euo pipefail
-PY=${PY:-~/venv/bin/python}
-ROOT=${ROOT:-~/medretrieval}
-DATA=${DATA:-$ROOT/data}
-COSINE_NPZ=${COSINE_NPZ:-$ROOT/rerank_out/similarities.npz}
-GRID=${GRID:-64}
-MODE=${1:-offline}
-
-cd "$ROOT"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+export PYTHONPATH="$REPO/core:$REPO/mind:$REPO/experiments:${PYTHONPATH:-}"
+PY="${PY:-python}"
+DATA="${DATA_ROOT:-${ROOT:-$HOME/medretrieval}/data}"
+OUTDIR="${OUTDIR:-$REPO/runs}"; mkdir -p "$OUTDIR"
+GRID="${GRID:-64}"
+MODE="${1:-offline}"
 
 if [ "$MODE" = "offline" ]; then
-  $PY mind_retrieval.py --mode offline \
+  "$PY" "$REPO/mind/mind_retrieval.py" --mode offline \
     --data-root "$DATA" \
     --train-pair-csv "$DATA/dataset1/train_pairs.csv" \
     --grid "$GRID" --holdout 80 --try-align \
-    --cosine-npz "$COSINE_NPZ" \
+    --cosine-npz "${COSINE_NPZ:-$OUTDIR/similarities.npz}" \
     --blend-weights 0.3 0.5 0.7
 else
-  $PY mind_retrieval.py --mode submit \
-    --data-root "$DATA" \
-    --grid "$GRID" \
+  "$PY" "$REPO/mind/mind_retrieval.py" --mode submit \
+    --data-root "$DATA" --grid "$GRID" \
     --query-csv "$DATA/dataset1/val_queries.csv"  --gallery-csv "$DATA/dataset1/val_gallery.csv" \
     --query-csv "$DATA/dataset1/test_queries.csv" --gallery-csv "$DATA/dataset1/test_gallery.csv" \
     --query-csv "$DATA/dataset2/val_queries.csv"  --gallery-csv "$DATA/dataset2/val_gallery.csv" \
@@ -37,6 +30,6 @@ else
     --query-csv "$DATA/dataset3/test_queries.csv" --gallery-csv "$DATA/dataset3/test_gallery.csv" \
     --align-pool 2 3 \
     --rerank sinkhorn --sinkhorn-tau 10 --sinkhorn-iter 50 \
-    --out mind_submission.csv \
+    --out "$OUTDIR/mind_submission.csv" \
     "${@:2}"
 fi

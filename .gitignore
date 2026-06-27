@@ -20,3 +20,7 @@ rerank_out/
 
 # Any *_submission.csv (model outputs with real query IDs)
 *_submission.csv
+
+# Run outputs (models, caches, generated submissions)
+runs/
+data_stripped/

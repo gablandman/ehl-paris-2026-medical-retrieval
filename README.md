@@ -8,6 +8,47 @@ Your task is to build a cross-modal medical image retrieval system. For each que
 
 https://www.kaggle.com/t/b33ec3e76c3d4e16a6b56852470b3ebf
 
+## Our solution
+
+Best public score **0.98796** (2nd place). The winner is **training-free**: a
+modality-invariant **MIND** descriptor compared across volumes, with an
+**affine pre-registration step on dataset2** (whose independent deformation
+otherwise breaks correspondence), then Sinkhorn reranking. See `FINDINGS.md`
+for the full experiment log and the score progression (0.55 → 0.80 → 0.99).
+
+| Approach | Public MRR |
+|---|---|
+| SliceCLIP bi-encoder + Sinkhorn | 0.555 |
+| MIND + Sinkhorn (training-free) | 0.801 |
+| **MIND + ds2 affine registration + Sinkhorn** | **0.988** |
+
+### Repository layout
+
+```
+core/          shared modules (SliceCLIP baseline, Sinkhorn/Hungarian rerank)
+mind/          the winning pipeline:
+                 mind_retrieval.py   MIND descriptor + similarity + rerank
+                 mind_register.py    + ds2 affine pre-registration (best)
+experiments/   archived explorations (see FINDINGS.md for why each was dropped):
+                 brainiac_encode.py / brainiac_finetune.py   pretrained 3D encoder (frozen / adapter / LoRA)
+                 skullstrip.py        HD-BET skull-stripping
+                 xattn_rerank.py      cross-attention reranker
+                 slice_clip_ds2aug.py / rerank_ds2aug.py     ds2-style augmentation
+scripts/       run_*.sh helpers (each sets PYTHONPATH and resolves paths)
+FINDINGS.md    living roadmap + every experiment's result
+```
+
+### Running
+
+Scripts run on the GPU server (AMD MI300X, ROCm). Set `DATA_ROOT` and `PY`
+(the venv python); each script puts `core/`, `mind/`, `experiments/` on
+`PYTHONPATH` so the flat module imports resolve. Example — reproduce the best
+submission:
+
+```bash
+DATA_ROOT=~/medretrieval/data PY=~/venv/bin/python ./scripts/run_mind_reg.sh offline   # validate
+DATA_ROOT=~/medretrieval/data PY=~/venv/bin/python ./scripts/run_mind_reg.sh submit    # write CSV
+```
 
 ## Modalities
 
