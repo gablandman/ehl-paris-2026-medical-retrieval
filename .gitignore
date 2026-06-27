@@ -17,3 +17,7 @@ samples/
 
 # Reranking run outputs (model, sim cache, generated submissions)
 rerank_out/
+
+# BrainIAC run outputs + cache
+brainiac_out/
+.brainiac_cache/
