@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.7.7",
+  "checkpoint_id": "ca2dc2e39d36",
+  "strategy": "manual-commit",
+  "branch": "gpu-baseline",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".gitignore",
+    "slice_clip_baseline.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ca/2dc2e39d36/0/metadata.json",
+      "transcript": "/ca/2dc2e39d36/0/full.jsonl",
+      "content_hash": "/ca/2dc2e39d36/0/content_hash.txt",
+      "prompt": "/ca/2dc2e39d36/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  }
+}
