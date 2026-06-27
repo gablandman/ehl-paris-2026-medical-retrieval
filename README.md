@@ -203,6 +203,43 @@ The complete submission template contains one row for every validation and test 
 - For full challenge submissions, submit both validation and test query rows in one file.
 - To focus on one dataset first, submit only that dataset's rows and omit the other datasets. The omitted datasets receive zero credit. Multiplying the displayed score by `3` gives the MRR for the submitted dataset.
 
+## Experiment: skull-stripping BrainIAC inputs (negative result)
+
+[BrainIAC](https://huggingface.co/eugenehp/brainiac) is a 3D brain-MRI
+foundation model. A frozen BrainIAC encoder scores only ~0.31 (argmax) on this
+task, far below the SliceCLIP baseline (~0.55 with Sinkhorn). One plausible
+reason: BrainIAC was pretrained on **skull-stripped**, MNI-registered,
+N4-corrected brains, while the challenge volumes still contain skull, neck, and
+eyes. So the frozen encoder sees out-of-distribution inputs.
+
+We tested the obvious fix: strip the skull off every query and gallery volume
+first, then re-embed with the same frozen encoder.
+
+- `skullstrip.py` reads the 12 manifests, runs [HD-BET](https://github.com/MIC-DKFZ/HD-BET)
+  brain extraction over every referenced volume, and writes the stripped result
+  into a parallel tree (`data_stripped/`) that mirrors the originals' relative
+  paths, so the same manifests resolve unchanged.
+- `run_skullstrip.sh` is the one-shot driver (and shows how to re-embed: point
+  `run_brainiac.sh` at `data_stripped/` via `DATA_ROOT`).
+
+Stripping worked as intended — it removed ~75-80% of the nonzero voxels
+(everything outside the brain). But on the leaderboard it made retrieval
+**worse**, not better:
+
+| Encoder + preprocessing      | argmax  | Sinkhorn | Hungarian |
+| ---------------------------- | ------- | -------- | --------- |
+| SliceCLIP (best baseline)    |  0.481  | **0.555**|   0.529   |
+| BrainIAC frozen, raw volumes |  0.307  |  0.233   |   0.288   |
+| BrainIAC frozen, skull-strip |  0.117  |  0.103   |   0.116   |
+
+Conclusion: the off-distribution skull is **not** what was holding BrainIAC
+back. Removing it roughly halved the score. Stripping discards the very
+context (head/skull geometry, field of view) that the frozen features were
+keying on for same-subject matching, and the resulting embeddings collapse
+(top-1 conflict rate rose to ~0.84 — most queries point at the same few
+gallery items). The frozen-BrainIAC path is not worth pursuing for this task;
+the encoder would need fine-tuning, not better-matched preprocessing.
+
 ## Baseline Code
 
 We provide a small MONAI + PyTorch baseline to help you get started with the challenge data format, preprocessing, training loop, and submission generation.
