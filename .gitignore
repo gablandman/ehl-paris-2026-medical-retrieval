@@ -17,3 +17,6 @@ samples/
 
 # Reranking run outputs (model, sim cache, generated submissions)
 rerank_out/
+
+# Any *_submission.csv (model outputs with real query IDs)
+*_submission.csv
