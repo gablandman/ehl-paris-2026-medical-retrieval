@@ -1,0 +1,9 @@
+KGAT_dd66b102a09dba36c3b2828ed2b00f05; mkdir -p ~/.kaggle && echo KGAT_dd66b102a09dba36c3b2828ed2b00f05 > ~/.kaggle/access_token && chmod 600 ~/.kaggle/access_token
+
+---
+
+what is my current  competition
+
+---
+
+commit and pushj
