@@ -1,0 +1,5 @@
+do you have access to the last conversation from gablandman with claude
+
+---
+
+can you continue run sinkhorn and hungarian on top of the baseline
