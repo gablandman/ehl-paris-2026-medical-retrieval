@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.7.7",
+  "checkpoint_id": "0a9d46030d7d",
+  "session_id": "5b9529d0-3d42-473e-b013-2e55b77c4131",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-27T20:49:26.991596Z",
+  "branch": "ds2-affine-registration",
+  "checkpoints_count": 11,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "7f1c492f7730",
+  "token_usage": {
+    "input_tokens": 7677,
+    "cache_creation_tokens": 63378,
+    "cache_read_tokens": 1088301,
+    "output_tokens": 17591,
+    "api_call_count": 31
+  },
+  "session_metrics": {
+    "turn_count": 35
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 451,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "mind_register.py": 451
+      }
+    }
+  ]
+}
