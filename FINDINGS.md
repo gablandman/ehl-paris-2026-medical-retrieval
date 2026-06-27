@@ -13,13 +13,15 @@ Team **BRAINROT-LABS**. Living document — update as experiments land.
 | Submission | Public MRR | Notes |
 |---|---|---|
 | SliceCLIP baseline (GPU) | 0.37659 | provided baseline, adapted to run on MI300X |
-| Rerank — argmax (parity) | 0.48068 | same method as baseline, fresh model (see variance note) |
-| Rerank — Hungarian | 0.52866 | hard one-to-one assignment |
-| **Rerank — Sinkhorn** | **0.55487** | **best — currently 2nd place** |
+| SliceCLIP + Sinkhorn rerank | 0.55487 | prior best (learned bi-encoder) |
+| **MIND + Sinkhorn (training-free)** | **0.80088** | **best — currently 2nd place** (see §4.6) |
 
-Leaderboard at last check: leader **0.88670**, us **0.55487** (2nd), then 0.498, 0.487, 0.414.
+Leaderboard at last check: leader **0.99210**, us **0.80088** (2nd), then 0.561, 0.557, 0.503.
 
-**Headroom: ~0.33 MRR to the leader.** Plenty of axes below.
+**Headroom: ~0.19 MRR to the leader — and it is ENTIRELY dataset2.** MIND scores ~1.0 on
+ds1/ds3 but only ~0.40 on ds2 (its independent deformation breaks voxel correspondence). The
+single highest-value lever now is **rigid/affine pre-registration of query↔candidate before
+MIND on ds2** (almost certainly what the 0.99 leader did).
 
 **Still our best: SliceCLIP + Sinkhorn (0.555).** Since then we explored a pretrained-encoder
 line (BrainIAC) across four experiments — all came in *below* baseline (see §4.4). The lesson
@@ -109,17 +111,50 @@ What we learned (each a useful negative):
 - **Conclusion:** the whole BrainIAC line is a dead end. Closing the gap needs ds2/ds3 signal,
   not more ds1 adaptation. *(PRs #5 frozen, #6 skull-strip, #7 fine-tune.)*
 
-### 4.5 In flight
-- **F1 — ds2-style augmentation** on SliceCLIP (branch `ds2-geometric-augmentation`).
-- **D2 — cross-attention reranker** (branch in progress). Both target the ds2/ds3 gap above.
+### 4.5 Cross-attention reranker (D2) — below baseline ❌
+A small cross-attention head over SliceCLIP conv tokens, trained on ds1 (PR #8). Scored
+**0.464** Sinkhorn vs 0.555. Two diagnosed causes: the conv tokens barely vary across subjects
+(std ~0.006; the signal lives in the projection MLP, not the tokens), and the ds1-trained
+refinement scrambles ds3. The synthetic-ds2 proxy correctly predicted Δ≈0 before submitting.
+
+### 4.6 ds2-style augmentation (F1) — works on ds2, but a single encoder trades off ⚖️
+Train SliceCLIP with independent rigid(3D)+elastic deformation of query/target, reproducing
+ds2 (PR #9). **Offline synthetic-ds2 MRR 0.11 → 0.35 (~3×) — the mechanism works.** But one
+shared encoder handling clean *and* deformed inputs pays the ds2 gain back on ds1:
+
+| Dataset | baseline | augmented (prob 0.25) |
+|---|---|---|
+| ds1 | 0.896 | 0.704 |
+| ds2 | 0.120 | **0.335** |
+| ds3 | 0.649 | 0.607 |
+| overall | **0.555** | 0.549 (ties) |
+
+Lesson: don't force one encoder to do both — route per dataset, or (better) use a method that
+is robust by construction (→ MIND, §4.6 superseded this).
+
+### 4.7 MIND modality-invariant retrieval — ✅ BIG WIN (0.801, new best)
+A **training-free** method (MIND descriptor, Heinrich 2012): per-voxel local self-similarity
+over a 6-neighbourhood via 3D box-convolution on GPU. Modality-invariant by construction, so
+the T1↔T2 match is found with **no training** — sidestepping the ds1 overfitting that killed
+every learned method. Dissimilarity = mean |MIND_q − MIND_t|, then Sinkhorn. *(PR #10.)*
+
+- **Public LB 0.80088** (+0.25 over the prior 0.555 best).
+- Offline: aligned proxy MRR **~1.0**; synthetic-ds2 **~0.44** (correctly flagged the ds2 weakness).
+- Real-pool conflict rates: ds1 0.04–0.05, ds3 0.00–0.12 (near-perfect bijection), ds2 0.75–0.83.
+- **It beats the augmented SliceCLIP even on ds2** (~0.40 vs 0.335), so it supersedes the §4.6
+  routing idea entirely.
+- **Remaining gap = ds2 only.** MIND needs spatial correspondence, which ds2's independent
+  deformation breaks (COM-alignment barely helped). Next: real rigid/affine pre-registration
+  of query↔candidate before MIND on ds2 (🔄 in flight).
 
 ---
 
 ## 5. Improvement axes
 
 Rough effort/impact are guesses to help prioritize, not promises.
-**A1 is done.** Suggested next: **F1 (deformation augmentation)** and **A2 (tau sweep)** —
-biggest expected impact for least effort, and they target ds2/ds3 where we're weakest.
+**Done:** A1 (Sinkhorn), G1 (MIND — our 0.801 best). **Confirmed dead ends:** the whole BrainIAC
+line (C1) and the cross-attention reranker (D2). **Top lever now: G1b — ds2 pre-registration
+before MIND**, which is the entire remaining gap to the leader.
 
 ### A. Assignment / ranking structure  *(we already started here)*
 - **A1. Sinkhorn vs Hungarian reranking — ✅ DONE** (Sinkhorn best, 0.555).
@@ -158,8 +193,10 @@ biggest expected impact for least effort, and they target ds2/ds3 where we're we
 - **F4. Test-time augmentation** — embed several augmented views, average. *(low / low-med)*
 
 ### G. Classical / registration-based signals  *(no training; strong for ds2/ds3)*
-- **G1. Normalized Mutual Information (NMI)** between query and candidate — the classic
-  cross-modal registration metric; rank by it directly or blend with learned similarity. *(med / med-high, esp. ds2/ds3)*
+- **G1. Modality-invariant descriptor — ✅ DONE, our BEST (0.801).** MIND (a stronger cousin of
+  NMI) ranked by descriptor distance + Sinkhorn. Near-perfect on aligned ds1/ds3. *(see §4.7)*
+- **G1b. ds2 pre-registration before MIND — 🔄 IN FLIGHT, the top lever now.** Rigid/affine
+  align query↔candidate first so MIND's correspondence assumption holds on ds2. *(med / HIGH — the whole remaining gap)*
 - **G2. Exploit alignment** — ds1 is on a common grid and ds3 targets are resampled into
   query space; voxel-overlap / deformable-registration cost as a feature. *(med-high / med)*
 
