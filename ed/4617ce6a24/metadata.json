@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.7.7",
+  "checkpoint_id": "ed4617ce6a24",
+  "strategy": "manual-commit",
+  "branch": "cv-confidence-report",
+  "checkpoints_count": 12,
+  "files_touched": [
+    "CV_RESULTS.md",
+    "eval/cv_eval.py",
+    "scripts/run_cv_eval.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ed/4617ce6a24/0/metadata.json",
+      "transcript": "/ed/4617ce6a24/0/full.jsonl",
+      "content_hash": "/ed/4617ce6a24/0/content_hash.txt",
+      "prompt": "/ed/4617ce6a24/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  }
+}
