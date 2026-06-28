@@ -1,0 +1,107 @@
+and then lets set up the autoresearch agent together note that is should start from its own fresh repo here are all the credential
+
+username BRAINROT-CODEX
+kaggle KGAT_c9215b26a3a90da5e79b7349239cee0d
+i got a new gpu as well 
+ip:
+129.212.182.217
+
+jupyter_url:
+http://129.212.182.217/lab?REDACTED%2F9TWIjS09eJBV
+
+jupyter_token: 
+REDACTED
+
+root_password:
+Onyx2143
+
+and here the API_KEY OPEN AI
+REDACTED
+
+note that the challenge ends at 12h30 and we 50$ of credit available 
+
+give full instruction on the contest so ai can start working on the problem 
+
+and here is the presentation we got 
+@/Users/gklajer/Downloads/presentation_TUM_AI.pdf 
+
+also make sure it can work properly push submission to the leaderboad and everything it needs to work
+
+say that it should aim for the higher public and private score before the baseline 
+using everything possible
+
+---
+
+and make sure it use entire
+
+---
+
+so we have all the traces of what is has done
+
+---
+
+it is fine i will revocate the api keys in a few hours
+
+---
+
+just set up everything needed
+
+---
+
+i need to see the new repo created on github and entire and make sure the model make a first submission then let a subagent in the background monitor that it is working properly no blocker and make it report to you
+
+---
+
+use 5.6 or 5.5 at least
+
+---
+
+and use the highest effort for it the best version
+
+---
+
+also make sure entire is enabled
+
+---
+
+ok i authorized
+
+---
+
+how the agent came with mind hungarian i asked you to make it start with fresh context not to continue from where we at
+
+---
+
+i dont want it to use our findings
+
+---
+
+really start with only the knowledge we got at the beggining it is an ablation studies ai+human vs ai
+
+---
+
+you leaked info
+
+---
+
+can you somehow make everything fresh
+
+---
+
+again
+
+---
+
+so hurry up
+
+---
+
+have you killed the subagent created a fresh repo ...
+
+---
+
+just start fresh but dont leak our findings in the brief
+
+---
+
+btw we are at one have you update the finding and the description
