@@ -10,17 +10,24 @@ https://www.kaggle.com/t/b33ec3e76c3d4e16a6b56852470b3ebf
 
 ## Our solution
 
-Best public score **0.98796** (2nd place). The winner is **training-free**: a
-modality-invariant **MIND** descriptor compared across volumes, with an
-**affine pre-registration step on dataset2** (whose independent deformation
-otherwise breaks correspondence), then Sinkhorn reranking. See `FINDINGS.md`
-for the full experiment log and the score progression (0.55 → 0.80 → 0.99).
+**Best public score 1.00000 — tied at the top of the leaderboard.** The winner is
+**training-free**: a modality-invariant **MIND** descriptor compared across
+volumes, with an **affine pre-registration step on dataset2** (whose independent
+deformation otherwise breaks correspondence), then a **Hungarian** optimal
+one-to-one assignment to exploit the bijection. See `FINDINGS.md` and
+`CV_RESULTS.md` for the full log and the progression
+(0.38 → 0.55 → 0.80 → 0.99 → 1.00).
 
 | Approach | Public MRR |
 |---|---|
 | SliceCLIP bi-encoder + Sinkhorn | 0.555 |
 | MIND + Sinkhorn (training-free) | 0.801 |
-| **MIND + ds2 affine registration + Sinkhorn** | **0.988** |
+| MIND + ds2 affine registration + Sinkhorn | 0.988 |
+| **MIND + ds2 registration + Hungarian** | **1.00000** |
+
+> The public leaderboard is **saturated** (several teams at 1.000), so the final
+> ranking is decided on the hidden **private (test) split** — see `CV_RESULTS.md`
+> for our private-generalization analysis and final-submission choice.
 
 ### Repository layout
 

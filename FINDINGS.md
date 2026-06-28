@@ -13,15 +13,15 @@ Team **BRAINROT-LABS**. Living document — update as experiments land.
 | Submission | Public MRR | Notes |
 |---|---|---|
 | SliceCLIP baseline (GPU) | 0.37659 | provided baseline, adapted to run on MI300X |
-| SliceCLIP + Sinkhorn rerank | 0.55487 | prior best (learned bi-encoder) |
-| **MIND + Sinkhorn (training-free)** | **0.80088** | **best — currently 2nd place** (see §4.6) |
+| SliceCLIP + Sinkhorn rerank | 0.55487 | learned bi-encoder |
+| MIND + Sinkhorn (training-free) | 0.80088 | modality-invariant descriptor |
+| MIND + ds2 affine registration + Sinkhorn | 0.98796 | registration fixes ds2 |
+| **MIND + ds2 registration + Hungarian** | **1.00000** | **best — tied #1 on public (see §4.7 / CV_RESULTS.md)** |
 
-Leaderboard at last check: leader **0.99210**, us **0.80088** (2nd), then 0.561, 0.557, 0.503.
-
-**Headroom: ~0.19 MRR to the leader — and it is ENTIRELY dataset2.** MIND scores ~1.0 on
-ds1/ds3 but only ~0.40 on ds2 (its independent deformation breaks voxel correspondence). The
-single highest-value lever now is **rigid/affine pre-registration of query↔candidate before
-MIND on ds2** (almost certainly what the 0.99 leader did).
+The public leaderboard is now **saturated** (several teams at 1.00000, us included), so the
+public score no longer separates teams — **the final ranking is decided on the hidden private
+(test) split.** See `CV_RESULTS.md` for the private-generalization analysis and final-submission
+selection (Hungarian primary, Sinkhorn hedge). Progression: 0.38 → 0.55 → 0.80 → 0.99 → 1.00.
 
 **Still our best: SliceCLIP + Sinkhorn (0.555).** Since then we explored a pretrained-encoder
 line (BrainIAC) across four experiments — all came in *below* baseline (see §4.4). The lesson
